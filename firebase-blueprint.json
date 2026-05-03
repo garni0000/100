@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "Qualificated bettor lead with answers and analysis result",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "answers": {
+          "type": "object",
+          "properties": {
+            "experience": { "type": "string" },
+            "averageStake": { "type": "string" },
+            "goal": { "type": "string" },
+            "maxWin": { "type": "string" },
+            "profitability": { "type": "string" }
+          },
+          "required": ["experience", "averageStake", "goal", "maxWin", "profitability"]
+        },
+        "analysis": {
+          "type": "object",
+          "properties": {
+            "userCategory": { "type": "string" },
+            "potentialScore": { "type": "number" },
+            "disciplineScore": { "type": "number" },
+            "financialScore": { "type": "number" },
+            "riskLevel": { "type": "string" },
+            "psychologicalProfile": { "type": "string" },
+            "recommendation": { "type": "string" }
+          },
+          "required": ["userCategory", "potentialScore", "disciplineScore", "financialScore", "riskLevel", "psychologicalProfile", "recommendation"]
+        }
+      },
+      "required": ["id", "timestamp", "answers", "analysis"]
+    },
+    "GlobalStats": {
+      "title": "GlobalStats",
+      "description": "Aggregated statistics for the application",
+      "type": "object",
+      "properties": {
+        "totalUsers": { "type": "number" },
+        "vipCount": { "type": "number" },
+        "standardCount": { "type": "number" },
+        "lowValueCount": { "type": "number" },
+        "conversions": { "type": "number" }
+      },
+      "required": ["totalUsers", "vipCount", "standardCount", "lowValueCount", "conversions"]
+    }
+  },
+  "firestore": {
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Collection of all qualified bettor leads"
+    },
+    "/metadata/stats": {
+      "schema": "GlobalStats",
+      "description": "Global statistics document"
+    }
+  }
+}

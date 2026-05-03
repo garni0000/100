@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'eurahttps.gg@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validations ---
+    function isValidLead(data) {
+      return data.keys().hasAll(['id', 'timestamp', 'answers', 'analysis']) 
+        && data.keys().size() == 4
+        && isValidId(data.id)
+        && data.timestamp == request.time
+        && data.answers is map
+        && data.analysis is map
+        && data.answers.keys().hasAll(['experience', 'averageStake', 'goal', 'maxWin', 'profitability'])
+        && data.analysis.keys().hasAll(['userCategory', 'potentialScore', 'disciplineScore', 'financialScore', 'riskLevel', 'psychologicalProfile', 'recommendation']);
+    }
+
+    function isValidStats(data) {
+      return data.keys().hasAll(['totalUsers', 'vipCount', 'standardCount', 'lowValueCount', 'conversions'])
+        && data.keys().size() == 5
+        && data.totalUsers is number
+        && data.vipCount is number
+        && data.standardCount is number
+        && data.lowValueCount is number
+        && data.conversions is number;
+    }
+
+    // --- Rules ---
+    match /leads/{leadId} {
+      allow create: if isValidId(leadId) && isValidLead(incoming());
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /metadata/stats {
+      allow get: if true; 
+      allow create: if isAdmin() && isValidStats(incoming());
+      allow update: if (
+        isAdmin() || 
+        (
+          isSignedIn() && 
+          isValidStats(incoming()) && 
+          incoming().diff(existing()).affectedKeys().hasOnly(['totalUsers', 'vipCount', 'standardCount', 'lowValueCount', 'conversions'])
+        )
+      );
+    }
+
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only manageable via console for safety or specific setup
+    }
+    
+    // Testing path
+    match /test/connection {
+      allow get: if true;
+    }
+  }
+}
